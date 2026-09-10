@@ -229,10 +229,32 @@ addBBOalertEvent("onDataLoad", function () {
             } else {                         // EW (vertical marker)
                 posNr = (d.position().left == 0) ? 3 : 1;
             }
-            // Auction box headers are rotation-aware: they reflect actual seating
+            // Auction box headers are rotation-aware: they reflect actual seating.
+            //
+            // Read the COLUMN, never the letter. The header text is localised -
+            // BBO renders "W N E S" in English and "B K D G" in Turkish (Bati,
+            // Kuzey, Dogu, Guney) - so charAt() here used to return a translated
+            // initial, and that value was sent to the BBA server as the dealer.
+            // Confirmed in the server's audit log: 9 requests carrying K or G,
+            // all from one user on one afternoon, all parsed as North because
+            // the server falls through to North for anything it does not
+            // recognise. K (Kuzey/North) was accidentally right; G
+            // (Guney/South) silently produced an auction for the wrong dealer.
+            //
+            // The COLUMN ORDER is not localised. Measured on a live table, the
+            // header cells are West, North, East, South in DOM order in both
+            // languages - only the glyph changes:
+            //
+            //   English  W N E S
+            //   Turkish  B K D G
+            //
+            // So the position that charAt() was already computing is itself the
+            // answer, and no table of 25 languages' seat initials is needed.
+            var SEAT_BY_COLUMN = ["W", "N", "E", "S"];
             var ah = $("auction-box-header-cell", nd).text().replaceAll(" ", "").replaceAll("\n", "");
             if (ah.length >= 4) {
-                return ah.charAt((posNr + 1) % 4);
+                // still require the headers to be rendered; just do not parse them
+                return SEAT_BY_COLUMN[(posNr + 1) % 4];
             }
         }
 
